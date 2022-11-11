@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 """
-Stablishes the global variables used in this project
+Establishes the global variables used in this project
 
 This file contains data which is inmutable used for solving the
 problem, like the size of the map and the cells.
 """
 from datetime import datetime
-
 
 LATITUDE = 0.004491556
 LONGITUDE = 0.005986
@@ -18,80 +17,80 @@ FINAL_LATITUDE = 40.129715978
 FINAL_LONGITUDE = -73.120778
 
 
-def obtener_timestamp(fecha, hora):
+def get_timestamp(date, hour):
     """
-    Metodo para obtener un timestamp con una fecha y una hora
-    :param fecha: Fecha deseada en formato YY-MM-DD
-    :param hora: Hora deseada en formato HH:MM
-    :return: timestamp con la fecha y hora introducidos
+    method to get a timestamp with a date and a time
+    :param date: Desired date in format YY-MM-DD
+    :param hour: Desired time in format HH:MM
+    :return: timestamp with the entered date and time
     """
-    return datetime.strptime(fecha + " " + hora + ":00", "%Y-%m-%d %H:%M:%S")
+    return datetime.strptime(date + " " + hour + ":00", "%Y-%m-%d %H:%M:%S")
 
 
-def obtener_dia_semana(dia):
+def get_day_of_week(day):
     """
-    Metodo para obtener el dia de la semana en formato int para
-    poder utilizarlo con los datos del sistema. Donde 0 es el
-    lunes y el 6 el domingo.
-    :param dia: dia de la semana escrito en un string
-    :return: dia de la semana en formato int
+    Method to get the day of the week in int format for
+    be able to use it with system data. where 0 is the
+    Monday and 6 on Sunday.
+    :param day: day of the week written in a string
+    :return: day of the week in int format
     """
-    dia = dia.lower()
-    numero_dia = 0
-    if dia == "lunes":
-        numero_dia = 0
-    elif dia == "martes":
-        numero_dia = 1
-    elif dia == "miercoles" or dia == "miércoles":
-        numero_dia = 2
-    elif dia == "jueves":
-        numero_dia = 3
-    elif dia == "viernes":
-        numero_dia = 4
-    elif dia == "sabado" or dia == "sábado":
-        numero_dia = 5
-    elif dia == "domingo":
-        numero_dia = 6
+    day = day.lower()
+    day_number = 0
+    if day == "lunes":
+        day_number = 0
+    elif day == "martes":
+        day_number = 1
+    elif day == "miercoles" or day == "miércoles":
+        day_number = 2
+    elif day == "jueves":
+        day_number = 3
+    elif day == "viernes":
+        day_number = 4
+    elif day == "sabado" or day == "sábado":
+        day_number = 5
+    elif day == "domingo":
+        day_number = 6
     else:
-        print("No has establecido un día de la semana, por defecto es el lunes")
-        numero_dia = 0
-    return numero_dia
+        print("You have not set a day of the week, by default it is Monday")
+        day_number = 0
+    return day_number
 
 
-def obtener_mes(mes):
+def get_month(month):
     """
-    Metodo para obtener el mes de la semana en formato int para
-    poder utilizarlo con los datos del sistema. Donde 1 es enero
-    y el 12 diciembre.
-    :param dia: dia de la semana escrito en un string
-    :return: dia de la semana en formato int
+    Method to obtain the month of the week in int format for
+    be able to use it with system data. where 1 is january
+    and December 12.
+    :param mes: month of the year written in a string
+    :return: month of the year written in int format
     """
-    mes = mes.lower()
-    numero_mes = "01"
-    if mes == "enero":
-        numero_mes = "01"
-    elif mes == "febrero":
-        numero_mes = "02"
-    elif mes == "marzo":
-        numero_mes = "03"
-    elif mes == "abril":
-        numero_mes = "04"
-    elif mes == "mayo":
-        numero_mes = "05"
-    elif mes == "junio":
-        numero_mes = "06"
-    elif mes == "julio":
-        numero_mes = "07"
-    elif mes == "agosto":
-        numero_mes = "08"
-    elif mes == "septiembre":
-        numero_mes = "09"
-    elif mes == "octubre":
-        numero_mes = "10"
-    elif mes == "noviembre":
-        numero_mes = "11"
-    elif mes == "diciembre":
-        numero_mes = "12"
+    month = month.lower()
+    month_number = "01"
+    if month == "enero":
+        month_number = "01"
+    elif month == "febrero":
+        month_number = "02"
+    elif month == "marzo":
+        month_number = "03"
+    elif month == "abril":
+        month_number = "04"
+    elif month == "mayo":
+        month_number = "05"
+    elif month == "junio":
+        month_number = "06"
+    elif month == "julio":
+        month_number = "07"
+    elif month == "agosto":
+        month_number = "08"
+    elif month == "septiembre":
+        month_number = "09"
+    elif month == "octubre":
+        month_number = "10"
+    elif month == "noviembre":
+        month_number = "11"
+    elif month == "diciembre":
+        month_number = "12"
     else:
-        print("No has establecido un mes, por defecto es enero")
-    return numero_mes
+        print("You have not set a month, default is January")
+    return month_number

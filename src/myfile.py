@@ -3,7 +3,7 @@
 # Imports
 import sys
 import timeit
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import *
 
 from pyspark.conf import SparkConf
@@ -29,7 +29,7 @@ def day_close(date):
 CALCULATE_DAY = udf(day_close, IntegerType())
 
 
-def main(spark, file, name, time):
+def main(spark, file, date, hour, time):
     """
     Method that processes the data
     :param spark: Spark instance
@@ -66,15 +66,7 @@ def main(spark, file, name, time):
     data.createOrReplaceTempView("unprocessed")
     data.show()
     data.printSchema()
-    # Data filtering to eliminate incorrect records
-    # data = spark.sql("SELECT medallion, hack_license, pickup_datetime, dropoff_datetime, trip_time_in_secs, "
-    #                  + "trip_distance, pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude"
-    #                  + "FROM unprocessed "
-    #                  + "WHERE medallion <> '' AND hack_license <> '' AND dropoff_datetime <> dropoff_datetime "
-    #                  + "AND trip_time_in_secs > 0 "
-    #                  + "AND pickup_longitude <> dropoff_longitude AND pickup_latitude <> dropoff_latitude ")
-    # print("inja")
-    #  + "AND (tipo_pago = 'CSH' OR tipo_pago = 'CRD')")
+
     # We filter the latitudes to eliminate invalid records
     # data = data.where(data.pickup_longitude >= INITIAL_LONGITUDE) \
     #     .where(data.pickup_longitude <= FINAL_LONGITUDE) \
@@ -84,7 +76,7 @@ def main(spark, file, name, time):
     #     .where(data.pickup_latitude <= INITIAL_LATITUDE) \
     #     .where(data.dropoff_latitude >= FINAL_LATITUDE) \
     #     .where(data.dropoff_latitude <= INITIAL_LATITUDE)
-    # print("oonja")
+
     # We establish the grid system and calculate the day of the week
     data = data.withColumn("cuad_pickup_latitude",
                            floor((INITIAL_LATITUDE - data.pickup_latitude)/LATITUDE) + 1) \
@@ -95,14 +87,35 @@ def main(spark, file, name, time):
         .withColumn("cuad_dropoff_longitude",
                     floor(abs(INITIAL_LONGITUDE - data.dropoff_longitude)/LONGITUDE) + 1) \
         .withColumn("day_of_week", CALCULATE_DAY(data.pickup_datetime))
-    print("tahesh")
-    # .option("compression", "snappy") \
-    data.write \
-        .parquet("./../data/processed/" + name + "lab.parquet")
+
+    end_time = get_timestamp(date, hour)
+    start_time = end_time - timedelta(minutes=30)
+    frequent = data.filter(data.pickup_datetime <= end_time) \
+        .filter(data.pickup_datetime >= start_time) \
+        .filter(data.dropoff_datetime <= end_time) \
+        .filter(data.dropoff_datetime >= start_time) \
+        .groupBy("cuad_pickup_longitude", "cuad_pickup_latitude",
+                 "cuad_dropoff_longitude", "cuad_dropoff_latitude") \
+        .count().orderBy("count", ascending=False)
+    frequent.show()
+    frequent = frequent.take(10)
+
     fin = timeit.default_timer()
-    file = open("./../data/results/" + time + ".txt", "a")
+    file = open("./../data/results/" + "frequentResults.txt", "a")
+    file.write(str(start_time) + ", " + str(end_time) + ", ")
+    for i in range(len(frequent)):
+        file.write(str(i) + ": ")
+        file.write("(" + str(frequent[i][0]) +
+                   ", " + str(frequent[i][1]) + ") ")
+        file.write("(" + str(frequent[i][2]) +
+                   ", " + str(frequent[i][3]) + "), ")
     file.write(str(fin - beginning) + "\n")
     file.close()
+
+    # fin = timeit.default_timer()
+    # file = open("./../data/results/" + time + ".txt", "a")
+    # file.write(str(fin - beginning) + "\n")
+    # file.close()
 
 
 if __name__ == "__main__":
@@ -112,7 +125,8 @@ if __name__ == "__main__":
     CONF.setMaster("local[*]")
     SPARK = SparkSession.builder.config(conf=CONF).getOrCreate()
     FILE = sys.argv[1]
-    NAME = sys.argv[2]
-    TIME = sys.argv[3]
+    DATE = sys.argv[2]
+    HOUR = sys.argv[3]
+    TIME = sys.argv[4]
     print(TIME)
-    main(SPARK, FILE, NAME, TIME)
+    main(SPARK, FILE, DATE, HOUR, TIME)

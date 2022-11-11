@@ -1,106 +1,107 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-## Imports
-import timeit
+# Imports
 import sys
-from datetime import timedelta, datetime
+import timeit
+from datetime import datetime, timedelta
+
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, sum, udf
 from pyspark.sql.types import BooleanType, IntegerType
-from settings import obtener_dia_semana, obtener_mes
 
+from settings import get_day_of_week, get_month
 
-## Constantes
+# Constantes
 APP_NAME = "Most frequent routes given a day"
 
 
-## Variables globales
-FICHERO = sys.argv[1]
-MES = obtener_mes(sys.argv[2])
-DIA_SEMANA = sys.argv[3]
-HORA = sys.argv[4]
-HORA_FIN = datetime.strptime("2013-" + MES + " " + HORA, "%Y-%m %H:%M")
-HORA_INICIO = HORA_FIN - timedelta(minutes=30)
+# Variables globales
+FILE = sys.argv[1]
+MONTH = get_month(sys.argv[2])
+WEEK_DAY = sys.argv[3]
+HOUR = sys.argv[4]
+END_HOUR = datetime.strptime("2013-" + MONTH + " " + HOUR, "%Y-%m %H:%M")
+START_HOUR = END_HOUR - timedelta(minutes=30)
 
 
-def comparar_hora(hora):
+def compare_time(hour):
     """
-        Metodo que filtra las horas de los registros para que concuerden
-        con las horas de busqueda deseada
-        :param hora: Timestamp completo
-        :return: True si las horas del timestamp estan entre las deseadas
-        False si lo contrario
+        Method that filters the times of the records so that they match
+        with the desired search hours
+        :param hour: Full timestamp
+        :return: True if the timestamp hours are between the desired ones
+         false if otherwise
     """
-    if hora.time() <= HORA_FIN.time() and hora.time() >= HORA_INICIO.time():
+    if hour.time() <= END_HOUR.time() and hour.time() >= START_HOUR.time():
         return True
     return False
 
 
-def relevancia(fecha):
+def relevance(file):
     """
-        Metodo que da mas relevancia a los viajes mas cercanos a la
-        fecha de busqueda deseada.
-        Si la diferencia es menor a un mes de la fecha
-        dada los registros tienen más relevancia
-        :param fecha: Timestamp completo
-        :return: 2 si el viaje esta cerca de la fecha deseada, 1 si no
+        Method that gives more relevance to trips closest to the
+         desired search date.
+        If the difference is less than one month from the date
+         given the records have more relevance
+        :param file: Full timestamp
+        :return: 2 if the trip is close to the desired date, 1 if not
     """
-    diferencia = fecha - HORA_FIN
+    diferencia = file - END_HOUR
     if diferencia < timedelta(days=30) and diferencia > timedelta(days=-30):
         return 2
     else:
         return 1
 
 
-comprobar_hora = udf(comparar_hora, BooleanType())
-calcular_relevancia = udf(relevancia, IntegerType())
+check_time = udf(compare_time, BooleanType())
+calculate_relevance = udf(relevance, IntegerType())
 
 
-def main(spark, fichero):
+def main(spark, file):
     """
-    Calculo de las rutas mas frecuentes dado un mes, un dia de la semana y
-    una hora dentro de todo el conjunto de datos. Los viajes mas cercanos
-    al mes introducido tendran mas relevancia
-    :param spark: Instancia de spark
-    :param fichero: Fichero de datos
-    :return: Diez rutas mas frecuentes
+    Calculation of the most frequent routes given a month, a day of the week and
+     one hour within the entire data set. The nearest trips
+     the month entered will have more relevance
+    :param spark: Spark instance
+    :param file: Data file
+    :return: Ten most frequent routes
     """
-    inicio = timeit.default_timer()
+    beginning = timeit.default_timer()
 
-    data = spark.read.format("parquet").load("./../data/processed/" + fichero)
+    data = spark.read.format("parquet").load("./../data/processed/" + file)
 
-    dia_elegido = obtener_dia_semana(DIA_SEMANA)
+    chosen_day = get_day_of_week(WEEK_DAY)
 
     """
     Filtramos los datos con respecto al dia de la semana y la hora
     Ademas le damos un relevancia a cada viaje para el posterior count
     """
-    filtered = data.filter(data.dia_semana == dia_elegido) \
-        .withColumn("joder", comprobar_hora(data.hora_subida)) \
-        .withColumn("joder2", comprobar_hora(data.hora_bajada)) \
-        .withColumn('relevancia', calcular_relevancia(data.hora_subida))
+    filtered = data.filter(data.dia_semana == chosen_day) \
+        .withColumn("joder", check_time(data.hora_subida)) \
+        .withColumn("joder2", check_time(data.hora_bajada)) \
+        .withColumn('relevancia', calculate_relevance(data.hora_subida))
     """
     Agrupamos por rutas y hacemos el recuento de viajes
     """
-    frequent = filtered.groupBy("cuad_longitud_subida", "cuad_latitud_subida", \
+    frequent = filtered.groupBy("cuad_longitud_subida", "cuad_latitud_subida",
                                 "cuad_longitud_bajada", "cuad_latitud_bajada") \
         .sum("relevancia") \
-        .select(col("cuad_longitud_subida"), col("cuad_latitud_subida"), \
-                col("cuad_longitud_bajada"), col("cuad_latitud_bajada"), \
+        .select(col("cuad_longitud_subida"), col("cuad_latitud_subida"),
+                col("cuad_longitud_bajada"), col("cuad_latitud_bajada"),
                 col("sum(relevancia)").alias("frecuencia")) \
-    .orderBy("frecuencia", ascending=False)
+        .orderBy("frecuencia", ascending=False)
 
     final = frequent.take(10)
 
     fin = timeit.default_timer()
-    file = open("./../data/results/" + "resultadosFrequentDay.txt", "a")
-    file.write(str(HORA_INICIO.time()) + ", " + str(HORA_FIN.time()) + ", ")
+    file = open("./../data/results/" + "frequentDayResults.txt", "a")
+    file.write(str(START_HOUR.time()) + ", " + str(END_HOUR.time()) + ", ")
     for i in range(len(final)):
         file.write(str(i) + ": ")
         file.write("(" + str(final[i][0]) + ", " + str(final[i][1]) + ") ")
         file.write("(" + str(final[i][2]) + ", " + str(final[i][3]) + "), ")
-    file.write(str(fin - inicio) + "\n")
+    file.write(str(fin - beginning) + "\n")
     file.close()
 
 
@@ -110,4 +111,4 @@ if __name__ == "__main__":
     CONF.setAppName(APP_NAME)
     CONF.setMaster("local[*]")
     SPARK = SparkSession.builder.config(conf=CONF).getOrCreate()
-    main(SPARK, FICHERO)
+    main(SPARK, FILE)

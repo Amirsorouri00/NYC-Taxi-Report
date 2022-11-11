@@ -1,59 +1,65 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
-## Imports
-import timeit
+# Imports
 import sys
-from datetime import timedelta, datetime
+import timeit
+from datetime import datetime, timedelta
+
 from pyspark.conf import SparkConf
 from pyspark.sql import SparkSession
-from settings import obtener_timestamp
 
+from settings import get_timestamp
 
-## Constantes
+# Constantes
 APP_NAME = "Most frequent routes"
 
 
-def main(spark, fichero, fecha, hora):
+def main(spark, file, date, hour):
     """
-    Calculo de las rutas mas frecuentes dada una fecha y hora
-    dentro de todo el conjunto de datos.
-    :param spark: Instancia de spark
-    :param fichero: Fichero de datos
-    :param fecha: String con la fecha de busqueda en forma "YYYY-MM-DD".
+    Calculation of the most frequent routes given a date and time
+    within the entire data set.
+    :param spark: Spark instance
+    :param file: data file
+    :param date: String with the search date in the form "YYYY-MM-DD".
     Ej: "2013-01-02"
-    :param hora: Hora sobre la que se quiere realizar la consulta en forma "HH:MM"
-    :return: Diez rutas mas frecuentes
+    :param hour: Time on which you want to make the query in the form "HH:MM"
+    :return: Ten most frequent routes
     """
-    inicio = timeit.default_timer()
-    data = spark.read.format("parquet").load("./../data/processed/" + fichero)
-    tiempo_fin = obtener_timestamp(fecha, hora)
-    tiempo_inicio = tiempo_fin - timedelta(minutes=30)
-    frequent = data.filter(data.hora_subida <= tiempo_fin) \
-        .filter(data.hora_subida >= tiempo_inicio) \
-        .filter(data.hora_bajada <= tiempo_fin) \
-        .filter(data.hora_bajada >= tiempo_inicio) \
-        .groupBy("cuad_longitud_subida", "cuad_latitud_subida", \
-        "cuad_longitud_bajada", "cuad_latitud_bajada") \
+    beginning = timeit.default_timer()
+    data = spark.read.format("parquet").load("./../data/processed/" + file)
+    data.show()
+    end_time = get_timestamp(date, hour)
+    start_time = end_time - timedelta(minutes=30)
+    frequent = data.filter(data.pickup_datetime <= end_time) \
+        .filter(data.pickup_datetime >= start_time) \
+        .filter(data.dropoff_datetime <= end_time) \
+        .filter(data.dropoff_datetime >= start_time) \
+        .groupBy("cuad_pickup_longitude", "cuad_pickup_latitude",
+                 "cuad_dropoff_longitude", "cuad_dropoff_latitude") \
         .count().orderBy("count", ascending=False)
+    frequent.show()
     frequent = frequent.take(10)
+    # frequent.show()
     fin = timeit.default_timer()
-    file = open("./../data/results/" + "resultadosFrequent.txt", "a")
-    file.write(str(tiempo_inicio) + ", " + str(tiempo_fin) + ", ")
+    file = open("./../data/results/" + "frequentResults.txt", "a")
+    file.write(str(start_time) + ", " + str(end_time) + ", ")
     for i in range(len(frequent)):
         file.write(str(i) + ": ")
-        file.write("(" + str(frequent[i][0]) + ", " + str(frequent[i][1]) + ") ")
-        file.write("(" + str(frequent[i][2]) + ", " + str(frequent[i][3]) + "), ")
-    file.write(str(fin - inicio) + "\n")
+        file.write("(" + str(frequent[i][0]) +
+                   ", " + str(frequent[i][1]) + ") ")
+        file.write("(" + str(frequent[i][2]) +
+                   ", " + str(frequent[i][3]) + "), ")
+    file.write(str(fin - beginning) + "\n")
     file.close()
 
 
 if __name__ == "__main__":
-    # Configuramos SparkConf
+    # Let's Configure SparkConf
     CONF = SparkConf()
     CONF.setAppName(APP_NAME)
     CONF.setMaster("local[*]")
     SPARK = SparkSession.builder.config(conf=CONF).getOrCreate()
-    FICHERO = sys.argv[1]
-    FECHA = sys.argv[2]
-    HORA = sys.argv[3]
-    main(SPARK, FICHERO, FECHA, HORA)
+    FILE = sys.argv[1]
+    DATE = sys.argv[2]
+    HOUR = sys.argv[3]
+    main(SPARK, FILE, DATE, HOUR)
