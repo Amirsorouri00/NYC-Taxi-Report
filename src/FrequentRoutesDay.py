@@ -69,26 +69,40 @@ def main(spark, file):
     """
     beginning = timeit.default_timer()
 
-    data = spark.read.format("parquet").load("./../data/processed/" + file)
+    # data = spark.read.format("parquet").load("./../data/processed/" + file)
+    file_path_list = ["./../data/processed/1lab.parquet",
+                      "./../data/processed/2lab.parquet",
+                      "./../data/processed/3lab.parquet",
+                      "./../data/processed/4lab.parquet",
+                      "./../data/processed/5lab.parquet",
+                      "./../data/processed/6lab.parquet",
+                      "./../data/processed/7lab.parquet",
+                      "./../data/processed/8lab.parquet",
+                      "./../data/processed/9lab.parquet",
+                      "./../data/processed/10lab.parquet",
+                      "./../data/processed/11lab.parquet",
+                      "./../data/processed/12lab.parquet",
+                      ]
 
+    data = spark.read.parquet(*file_path_list)
     chosen_day = get_day_of_week(WEEK_DAY)
 
     """
     Filtramos los datos con respecto al dia de la semana y la hora
     Ademas le damos un relevancia a cada viaje para el posterior count
     """
-    filtered = data.filter(data.dia_semana == chosen_day) \
-        .withColumn("joder", check_time(data.hora_subida)) \
-        .withColumn("joder2", check_time(data.hora_bajada)) \
-        .withColumn('relevancia', calculate_relevance(data.hora_subida))
+    filtered = data.filter(data.day_of_week == chosen_day) \
+        .withColumn("joder", check_time(data.pickup_datetime)) \
+        .withColumn("joder2", check_time(data.dropoff_datetime)) \
+        .withColumn('relevancia', calculate_relevance(data.pickup_datetime))
     """
     Agrupamos por rutas y hacemos el recuento de viajes
     """
-    frequent = filtered.groupBy("cuad_longitud_subida", "cuad_latitud_subida",
-                                "cuad_longitud_bajada", "cuad_latitud_bajada") \
+    frequent = filtered.groupBy("cuad_pickup_longitude", "cuad_pickup_latitude",
+                                "cuad_dropoff_longitude", "cuad_dropoff_latitude") \
         .sum("relevancia") \
-        .select(col("cuad_longitud_subida"), col("cuad_latitud_subida"),
-                col("cuad_longitud_bajada"), col("cuad_latitud_bajada"),
+        .select(col("cuad_pickup_longitude"), col("cuad_pickup_latitude"),
+                col("cuad_dropoff_longitude"), col("cuad_dropoff_latitude"),
                 col("sum(relevancia)").alias("frecuencia")) \
         .orderBy("frecuencia", ascending=False)
 

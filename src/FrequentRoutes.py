@@ -25,8 +25,25 @@ def main(spark, file, date, hour):
     :param hour: Time on which you want to make the query in the form "HH:MM"
     :return: Ten most frequent routes
     """
+
+    file_path_list = ["./../data/processed/1lab.parquet",
+                      "./../data/processed/2lab.parquet",
+                      "./../data/processed/3lab.parquet",
+                      "./../data/processed/4lab.parquet",
+                      "./../data/processed/5lab.parquet",
+                      "./../data/processed/6lab.parquet",
+                      "./../data/processed/7lab.parquet",
+                      "./../data/processed/8lab.parquet",
+                      "./../data/processed/9lab.parquet",
+                      "./../data/processed/10lab.parquet",
+                      "./../data/processed/11lab.parquet",
+                      "./../data/processed/12lab.parquet",
+                      ]
+
     beginning = timeit.default_timer()
-    data = spark.read.format("parquet").load("./../data/processed/" + file)
+    # data = spark.read.format("parquet").load(*file_path_list)
+    data = spark.read.parquet(*file_path_list)
+    # data = spark.read.format("parquet").load("./../data/processed/" + file)
     data.show()
     end_time = get_timestamp(date, hour)
     start_time = end_time - timedelta(minutes=30)

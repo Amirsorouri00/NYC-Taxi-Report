@@ -23,6 +23,9 @@ def day_close(date):
     Returns the day of the week in int format
     Returns an int with the day of the week
     """
+    # print(date)
+    if date is None:
+        return 0
     return date.weekday()
 
 
@@ -86,6 +89,7 @@ def main(spark, file, name, time):
     #     .where(data.dropoff_latitude <= INITIAL_LATITUDE)
     # print("oonja")
     # We establish the grid system and calculate the day of the week
+    # print(data.pickup_datetime)
     data = data.withColumn("cuad_pickup_latitude",
                            floor((INITIAL_LATITUDE - data.pickup_latitude)/LATITUDE) + 1) \
         .withColumn("cuad_pickup_longitude",
@@ -94,8 +98,8 @@ def main(spark, file, name, time):
                     floor((INITIAL_LATITUDE - data.dropoff_latitude)/LATITUDE) + 1) \
         .withColumn("cuad_dropoff_longitude",
                     floor(abs(INITIAL_LONGITUDE - data.dropoff_longitude)/LONGITUDE) + 1) \
-        .withColumn("day_of_week", CALCULATE_DAY(data.pickup_datetime))
-    print("tahesh")
+        .withColumn("day_of_week", CALCULATE_DAY(data["pickup_datetime"]))
+    # print("tahesh")
     # .option("compression", "snappy") \
     data.write \
         .parquet("./../data/processed/" + name + "lab.parquet")
